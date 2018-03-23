@@ -1,3 +1,5 @@
+//Adopted from: https://github.com/ayushn21/Playfair-Cipher
+
 package ie.gmit.sw.ai;
 
 import java.io.File;
@@ -9,6 +11,7 @@ public class Main {
 
     public static void main(String[] args) {
         char [] sample = new char[200];
+        int charsRead = 0;
         List<Character> alphabet = new LinkedList<>();
         PlayfairCipher playfairCipher = new PlayfairCipher();
         for(char c : "abcdefghiklmnopqrstuvwxyz".toCharArray()) {
@@ -18,16 +21,16 @@ public class Main {
 
         try {
             FileReader fr = new FileReader(encryptFile);
-            fr.read(sample);
+            charsRead = fr.read(sample);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         System.out.println("Sample: "+ String.valueOf(sample));
-        System.out.println("Letters: " + String.valueOf(alphabet));
-        System.out.println("Letters size.: " + String.valueOf(alphabet.size()));
-        List<Character> key = new LinkedList<Character>(alphabet);
+        System.out.println("Characters read: "+ String.valueOf(charsRead));
         System.out.println("Alphabeth: " + String.valueOf(alphabet));
+        System.out.println("Letters size.: " + String.valueOf(alphabet.size()));
+        List<Character> key = new LinkedList<>(alphabet);
         System.out.println("Key: " + String.valueOf(key));
         Collections.shuffle(key);
         System.out.println("Random Key: " + String.valueOf(key));

@@ -6,7 +6,6 @@ public class PlayfairCipher {
     {
         inputText = inputText.replaceAll("\\s", "");
         inputText = inputText.toLowerCase();
-
         if(inputText.length()%2 != 0)
         {
             inputText = inputText + "z";
@@ -30,12 +29,10 @@ public class PlayfairCipher {
         char[][] digraphs = prepareInputText(inputText);
         PlayfairBlock playfairBlock = new PlayfairBlock(key);
         StringBuilder sb_decryptedTextBuilder = new StringBuilder();
-
         for(char[] each_digraph : digraphs)
         {
             sb_decryptedTextBuilder.append(playfairBlock.decryptDigraph(each_digraph));
         }
-
         return sb_decryptedTextBuilder.toString();
     }
 
