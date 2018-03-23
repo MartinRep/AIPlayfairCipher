@@ -6,16 +6,15 @@ public class PlayfairCipher {
     {
         inputText = inputText.replaceAll("\\s", "");
         inputText = inputText.toLowerCase();
-        if(inputText.length()%2 != 0)
+        char[][] digraphs = new char[inputText.length() / 2 ][2];
+        if(inputText.length() % 2 != 0)
         {
             inputText = inputText + "z";
         }
-
-        char[][] digraphs = new char[inputText.length()/2][2];
         int index = 0;
-        for(int i=0; i<inputText.length()/2; i++)
+        for(int i = 0; i < inputText.length() / 2; i++)
         {
-            for(int j=0; j<2; j++)
+            for(int j = 0; j < 2; j++)
             {
                 digraphs[i][j] = inputText.charAt(index);
                 index++;
@@ -35,7 +34,5 @@ public class PlayfairCipher {
         }
         return sb_decryptedTextBuilder.toString();
     }
-
-
 
 }

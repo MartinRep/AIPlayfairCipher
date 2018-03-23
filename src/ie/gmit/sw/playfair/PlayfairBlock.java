@@ -1,19 +1,23 @@
 package ie.gmit.sw.playfair;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 
 public class PlayfairBlock 
 {
-	
 	private char[][] cipherTable;
 	private ArrayList<Character> blockLetters = new ArrayList<>(Arrays.asList('a','b','c','d','e','f','g','h','i','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'));
-	private ArrayIndex index;
-	
+	private HashMap<Character, Integer[]> index = new HashMap<>();
+
 	PlayfairBlock(String key)
 	{
 		this.cipherTable = prepareBlock(key.toLowerCase().toCharArray());
-		this.index = new ArrayIndex(this.cipherTable);
+		for(int i = 0; i < this.cipherTable.length; i++)
+        {
+            for(int j = 0; j < this.cipherTable[i].length; j++)
+            {
+                index.put(this.cipherTable[i][j], new Integer[] {i,j});
+            }
+        }
 	}
 	
 	private char[][] prepareBlock(char[] key)
@@ -30,7 +34,7 @@ public class PlayfairBlock
 		{
 			table[i][j] = letter;
 			j++;
-			if(j>4)
+			if(j > 4)
 			{
 				i++;
 				j = 0;
@@ -65,7 +69,7 @@ public class PlayfairBlock
 			output[0] = this.cipherTable[getNewDecryptCoordWithWrap(X_1)][Y_1];
 			output[1] = this.cipherTable[getNewDecryptCoordWithWrap(X_2)][Y_2];
 		}
-		return charArrayToString(output);
+		return String.valueOf(output);
 	}
 
 	private int getNewDecryptCoordWithWrap(int coord) 
@@ -81,21 +85,11 @@ public class PlayfairBlock
 		}
 	}
 
-	private static String charArrayToString(char[] input)
-	{
-		StringBuilder sb_stringBuilder = new StringBuilder();
-		for(int i = 0; i < input.length; i++)
-		{
-			sb_stringBuilder.append(input[i]);
-		}
-		return sb_stringBuilder.toString();
-	}
-
 	private static char[] reverseCharArray(char[] input)
 	{
 		char[] output = new char[input.length];
 		int j = 0;
-		for(int i=input.length-1; i>=0; i--)
+		for(int i = input.length - 1; i >= 0; i--)
 		{
 			output[i] = input[j];
 			j++;

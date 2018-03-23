@@ -12,11 +12,9 @@ public class Main {
     public static void main(String[] args) {
         char [] sample = new char[200];
         int charsRead = 0;
-        List<Character> alphabet = new LinkedList<>();
+        ArrayList<Character> alphabet = new ArrayList<>(Arrays.asList('a','b','c','d','e','f','g','h','i','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'));
+        List<Character> key = new LinkedList<>(alphabet);
         PlayfairCipher playfairCipher = new PlayfairCipher();
-        for(char c : "abcdefghiklmnopqrstuvwxyz".toCharArray()) {
-            alphabet.add(c);
-        }
         File encryptFile = new File("resources/cyphertext-2018.txt");
 
         try {
@@ -28,9 +26,8 @@ public class Main {
 
         System.out.println("Sample: "+ String.valueOf(sample));
         System.out.println("Characters read: "+ String.valueOf(charsRead));
-        System.out.println("Alphabeth: " + String.valueOf(alphabet));
+        System.out.println("Alphabet: " + String.valueOf(alphabet));
         System.out.println("Letters size.: " + String.valueOf(alphabet.size()));
-        List<Character> key = new LinkedList<>(alphabet);
         System.out.println("Key: " + String.valueOf(key));
         Collections.shuffle(key);
         System.out.println("Random Key: " + String.valueOf(key));
