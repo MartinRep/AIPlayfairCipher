@@ -1,11 +1,11 @@
-package ie.gmit.sw.playfair;
+package ie.gmit.sw.ai;
 
 import java.util.*;
 
 public class PlayfairBlock 
 {
 	private char[][] cipherTable;
-	private ArrayList<Character> blockLetters = new ArrayList<>(Arrays.asList('a','b','c','d','e','f','g','h','i','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'));
+    private static ArrayList<Character> blockLetters = new ArrayList<>(Arrays.asList('a','b','c','d','e','f','g','h','i','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'));
 	private HashMap<Character, Integer[]> index = new HashMap<>();
 
 	PlayfairBlock(String key)
@@ -19,7 +19,28 @@ public class PlayfairBlock
             }
         }
 	}
-	
+
+    public char[][] prepareInputText(String inputText)
+    {
+        inputText = inputText.replaceAll("\\s", "");
+        inputText = inputText.toLowerCase();
+        char[][] digraphs = new char[inputText.length() / 2 ][2];
+        if(inputText.length() % 2 != 0)
+        {
+            inputText = inputText + "z";
+        }
+        int index = 0;
+        for(int i = 0; i < inputText.length() / 2; i++)
+        {
+            for(int j = 0; j < 2; j++)
+            {
+                digraphs[i][j] = inputText.charAt(index);
+                index++;
+            }
+        }
+        return digraphs;
+    }
+
 	private char[][] prepareBlock(char[] key)
 	{
 		for(char letter : reverseCharArray(key))
@@ -96,5 +117,9 @@ public class PlayfairBlock
 		}
 		return output;
 	}
+
+    public static char[] getBlockLetters() {
+        return Arrays.asList(blockLetters).toString().replaceAll("[,\\s\\[\\]]", "").toCharArray();
+    }
 
 }
