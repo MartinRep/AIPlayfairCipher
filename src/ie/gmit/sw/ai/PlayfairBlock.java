@@ -51,7 +51,7 @@ public class PlayfairBlock
 		
 		char[][] table = new char[5][5];
 		int i = 0, j = 0;
-		for(char letter : this.blockLetters)
+		for(char letter : blockLetters)
 		{
 			table[i][j] = letter;
 			j++;
@@ -119,7 +119,7 @@ public class PlayfairBlock
 	}
 
     public static char[] getBlockLetters() {
-        return Arrays.asList(blockLetters).toString().replaceAll("[,\\s\\[\\]]", "").toCharArray();
+        return Collections.singletonList(blockLetters).toString().replaceAll("[,\\s\\[\\]]", "").toCharArray();
     }
 
 }
