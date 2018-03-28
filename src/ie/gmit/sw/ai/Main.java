@@ -5,7 +5,7 @@ package ie.gmit.sw.ai;
 import java.io.*;
 import java.net.URL;
 import java.util.*;
-
+import java.util.concurrent.ArrayBlockingQueue;
 
 public class Main {
 
@@ -13,12 +13,16 @@ public class Main {
         int sampleSize = 500;
         int transitions = 50000;
         int temp = 10;
+        int numOfWorkers = 10;
         char [] sample = new char[sampleSize];
+        ArrayBlockingQueue<String> servLog = new ArrayBlockingQueue<>(numOfWorkers);
         char[] blockLetters = PlayfairBlock.getBlockLetters();
         String ngramFile = "resources/4grams.txt";
         String encryptedFile = "resources/devHobbit.txt";
+        String logFile = "logfile.txt";
         HashMap<String, Double> ngrams = new HashMap<>();
 
+        LogService.init(servLog, logFile);
         try {
             ngrams = getNgrams(ngramFile);
             sample = getFromFile(encryptedFile, sampleSize);
@@ -27,7 +31,8 @@ public class Main {
         }
 
         SimulatedAnnealing simulatedAnnealing = new SimulatedAnnealing(String.valueOf(sample), ngrams, blockLetters, transitions, temp);
-        System.out.println("Best result: " + simulatedAnnealing.decrypt());
+        LogService.logMessage("Best result key: " + simulatedAnnealing.decrypt());
+        LogService.shutdown();
     }
 
     private static HashMap<String, Double> getNgrams(String file) throws IOException {
