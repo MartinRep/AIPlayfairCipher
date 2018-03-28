@@ -69,7 +69,7 @@ public class LogService {
 		log = servLog.take();
 	    } while (!stop);
 	    log = "[Warning] Logging Service Stopped.";
-	    logger.warning(log);
+	    logger.info(log);
 	} catch (SecurityException e) {
 	    System.out.println("[ERROR] Logging service exception: " + e.getMessage());
 	} catch (IOException e) {

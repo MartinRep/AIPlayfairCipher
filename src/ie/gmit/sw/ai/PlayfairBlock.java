@@ -5,7 +5,7 @@ import java.util.*;
 public class PlayfairBlock 
 {
 	private char[][] cipherTable;
-    private static ArrayList<Character> blockLetters = new ArrayList<>(Arrays.asList('a','b','c','d','e','f','g','h','i','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'));
+    private ArrayList<Character> blockLetters = new ArrayList<>(Arrays.asList('a','b','c','d','e','f','g','h','i','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'));
 	private HashMap<Character, Integer[]> index = new HashMap<>();
 
 	PlayfairBlock(String key)
@@ -20,7 +20,7 @@ public class PlayfairBlock
         }
 	}
 
-    public char[][] prepareInputText(String inputText)
+    char[][] prepareInputText(String inputText)
     {
         inputText = inputText.replaceAll("\\s", "");
         inputText = inputText.toLowerCase();
@@ -106,7 +106,7 @@ public class PlayfairBlock
 		}
 	}
 
-	private static char[] reverseCharArray(char[] input)
+	private char[] reverseCharArray(char[] input)
 	{
 		char[] output = new char[input.length];
 		int j = 0;
@@ -119,7 +119,8 @@ public class PlayfairBlock
 	}
 
     public static char[] getBlockLetters() {
-        return Collections.singletonList(blockLetters).toString().replaceAll("[,\\s\\[\\]]", "").toCharArray();
+        ArrayList<Character> block = new ArrayList<>(Arrays.asList('a','b','c','d','e','f','g','h','i','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'));
+        return Collections.singletonList(block).toString().replaceAll("[,\\s\\[\\]]", "").toCharArray();
     }
 
 }

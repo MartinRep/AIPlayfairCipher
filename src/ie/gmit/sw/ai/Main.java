@@ -11,9 +11,9 @@ public class Main {
 
     public static void main(String[] args) {
         int sampleSize = 500;
-        int transitions = 50000;
+        int transitions = 500;
         int temp = 10;
-        int numOfWorkers = 10;
+        int numOfWorkers = 2;
         char [] sample = new char[sampleSize];
         ArrayBlockingQueue<String> servLog = new ArrayBlockingQueue<>(numOfWorkers);
         char[] blockLetters = PlayfairBlock.getBlockLetters();
@@ -21,7 +21,7 @@ public class Main {
         String encryptedFile = "resources/devHobbit.txt";
         String logFile = "logfile.txt";
         HashMap<String, Double> ngrams = new HashMap<>();
-
+        ArrayBlockingQueue<Result> results = new ArrayBlockingQueue<>(numOfWorkers);
         LogService.init(servLog, logFile);
         try {
             ngrams = getNgrams(ngramFile);
@@ -29,10 +29,35 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        SimulatedAnnealing simulatedAnnealing = new SimulatedAnnealing(String.valueOf(sample), ngrams, blockLetters, transitions, temp);
-        LogService.logMessage("Best result key: " + simulatedAnnealing.decrypt());
+        System.out.println("Running playfaircrack, this could take a few minutes..");
+        Worker[] workers = new Worker[numOfWorkers];
+        for (int i = 0; i < numOfWorkers; i++) {
+            workers[i] = new Worker(sample, ngrams, blockLetters, transitions, temp, results);
+            new Thread(workers[i]).start();
+        }
+        int numResults = 0;
+        while(numResults < numOfWorkers){
+            Result result = results.peek();
+            if(result != null){
+//                LogService.logMessage(result.toString());
+                numResults++;
+            }
+        }
+        Result bestResult = new Result("","", Double.MIN_VALUE);
+        for (Result result: results) {
+            if(bestResult.getProbability() > result.getProbability()){
+                bestResult = result;
+            }
+        }
+        System.out.println();
+        LogService.logMessage(bestResult.toString());
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            System.out.println(e.getMessage());
+        }
         LogService.shutdown();
+        System.exit(0);
     }
 
     private static HashMap<String, Double> getNgrams(String file) throws IOException {

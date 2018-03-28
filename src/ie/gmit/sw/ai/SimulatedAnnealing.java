@@ -19,15 +19,18 @@ public class SimulatedAnnealing {
         this.temperature = temperature;
     }
 
-    public String decrypt() {
+    public Result decrypt() {
         char[] parent = shuffle(blockLetters.clone());
+        String decrypTextParent = "";
+        double parentProb = 0;
         for (int temp = temperature; temp >= 0; temp--) {
             for (int transitions = trans; transitions >= 0; transitions--) {
                 char[] child = shuffle(parent);
-                String decrypTextParent = decryptText(sample, String.valueOf(parent));
+                decrypTextParent = decryptText(sample, String.valueOf(parent));
                 String decrypTextChild = decryptText(sample, String.valueOf(child));
                 double childProb = logProbability(decrypTextChild, ngrams);
-                double delta = childProb - logProbability(decrypTextParent, ngrams);
+                parentProb = logProbability(decrypTextParent, ngrams);
+                double delta = childProb - parentProb;
                 if (delta > 0) {
                     parent = child;
                     //System.out.println("Parent: " + String.valueOf(parent) + " Child: " + String.valueOf(child));
@@ -42,9 +45,10 @@ public class SimulatedAnnealing {
 
                 //System.out.println(decryptText(sampleDev, String.valueOf(parent)));
             }
-            System.out.println(decryptText(sample, String.valueOf(parent)));
+            System.out.print(".");
+            //System.out.println(decryptText(sample, String.valueOf(parent)));
         }
-        return String.valueOf(parent);
+        return new Result(decrypTextParent, String.valueOf(parent), parentProb);
     }
 
 
@@ -87,6 +91,5 @@ public class SimulatedAnnealing {
         }
         return probability;
     }
-
 
 }
