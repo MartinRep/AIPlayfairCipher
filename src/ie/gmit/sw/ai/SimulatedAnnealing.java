@@ -45,7 +45,12 @@ public class SimulatedAnnealing {
 
                 //System.out.println(decryptText(sampleDev, String.valueOf(parent)));
             }
-            System.out.print(".");
+            //System.out.print(".");
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                System.out.println(e.getMessage());
+            }
             //System.out.println(decryptText(sample, String.valueOf(parent)));
         }
         return new Result(decrypTextParent, String.valueOf(parent), parentProb);

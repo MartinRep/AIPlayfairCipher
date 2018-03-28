@@ -8,10 +8,12 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class Main {
+    private static Boolean stop = false;
+    private static Thread stopAnytime;
 
     public static void main(String[] args) {
         int sampleSize = 500;
-        int transitions = 500;
+        int transitions = 50;
         int temp = 10;
         int numOfWorkers = 2;
         char [] sample = new char[sampleSize];
@@ -19,45 +21,64 @@ public class Main {
         char[] blockLetters = PlayfairBlock.getBlockLetters();
         String ngramFile = "resources/4grams.txt";
         String encryptedFile = "resources/devHobbit.txt";
+        String encryptedURL = "https://drive.google.com/file/d/193tHElB0VFH5rfT2woBr5jy_1NyV_DvE/view?usp=sharing";
         String logFile = "logfile.txt";
         HashMap<String, Double> ngrams = new HashMap<>();
         ArrayBlockingQueue<Result> results = new ArrayBlockingQueue<>(numOfWorkers);
-        LogService.init(servLog, logFile);
+        ArrayList<Result> finalResults = new ArrayList<>();
+        Boolean loggingON = false;
+
+        LogService.init(servLog, logFile, loggingON);
         try {
             ngrams = getNgrams(ngramFile);
             sample = getFromFile(encryptedFile, sampleSize);
+            //sample = getFromURL(encryptedURL, sampleSize);
         } catch (IOException e) {
-            e.printStackTrace();
+            LogService.logMessage("Error reading the file or the file format is not supported.");
+            shutdown(1);
         }
-        System.out.println("Running playfaircrack, this could take a few minutes..");
+        System.out.println("Running Play-fair crack, this could take a few minutes..");
         Worker[] workers = new Worker[numOfWorkers];
+        Thread[] threads = new Thread[numOfWorkers];
         for (int i = 0; i < numOfWorkers; i++) {
-            workers[i] = new Worker(sample, ngrams, blockLetters, transitions, temp, results);
-            new Thread(workers[i]).start();
+            workers[i] = new Worker(sample, ngrams, blockLetters, (transitions*(100*(i+1))), temp, results);
+            threads[i] = new Thread(workers[i]);
+            threads[i].start();
         }
+        stopAnytime = new Thread(() -> {
+            System.out.println("Press RETURN key to Stop the crack process at anytime.");
+            Scanner s = new Scanner(System.in);
+            s.nextLine();
+            System.out.println("Interrupted by user.");
+            for (Thread thread : threads) thread.interrupt();
+            stop = true;
+        });
+        stopAnytime.start();
         int numResults = 0;
-        while(numResults < numOfWorkers){
-            Result result = results.peek();
-            if(result != null){
-//                LogService.logMessage(result.toString());
-                numResults++;
-            }
+        while(numResults < numOfWorkers && !stop){
+                Result result = results.poll();
+                if(result != null){
+                    LogService.logMessage(result.toString());
+                    numResults++;
+                    finalResults.add(result);
+                }
         }
-        Result bestResult = new Result("","", Double.MIN_VALUE);
-        for (Result result: results) {
-            if(bestResult.getProbability() > result.getProbability()){
+        Result bestResult = new Result("","", Double.NEGATIVE_INFINITY);
+        for (Result result: finalResults) {
+            if(bestResult.getProbability() < result.getProbability()){
                 bestResult = result;
             }
         }
-        System.out.println();
-        LogService.logMessage(bestResult.toString());
+        if (bestResult.getProbability() != Double.NEGATIVE_INFINITY){
+            System.out.println();
+            LogService.logMessage(bestResult.toString());
+        }
         try {
             Thread.sleep(500);
         } catch (InterruptedException e) {
             System.out.println(e.getMessage());
         }
-        LogService.shutdown();
-        System.exit(0);
+        shutdown(0);
     }
 
     private static HashMap<String, Double> getNgrams(String file) throws IOException {
@@ -84,6 +105,7 @@ public class Main {
         URL fileUrl = new URL(url);
         BufferedReader in = new BufferedReader(new InputStreamReader(fileUrl.openStream()));
         if(in.read(sample) != sampleSize){
+            in.close();
             throw new IOException();
         }
         in.close();
@@ -98,6 +120,12 @@ public class Main {
             throw new IOException();
         }
         return sample;
+    }
+
+    private static void shutdown(int code){
+        LogService.shutdown();
+        if(stopAnytime != null) stopAnytime.interrupt();
+        System.exit(code);
     }
 
 }

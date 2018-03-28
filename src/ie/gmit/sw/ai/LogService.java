@@ -21,32 +21,35 @@ public class LogService {
     private static ArrayBlockingQueue<String> servLog;
     private static LogService instance;
     private static boolean stop = false;
+    private static boolean loggingON = true;
 
     private LogService(ArrayBlockingQueue<String> servLog, String logFile) {
 	LogService.logFile = logFile;
 	LogService.servLog = servLog;
-	Thread dLogger = new Thread(() -> {
-    try {
-        logger();
-    } catch (InterruptedException e) {
-        System.out.println("[ERROR] Logging service error: " + e.getMessage());
+	if (loggingON){
+        Thread dLogger = new Thread(() -> {
+            try {
+                logger();
+            } catch (InterruptedException e) {
+                System.out.println("[ERROR] Logging service error: " + e.getMessage());
+            }
+        });
+        dLogger.start();
     }
-    });
-	dLogger.start();
     }
 
     /**
      * Singleton Initialization method.
      * @param servLog ArrayBlockingQueue of Strings where messages to be logged are put.
      * @param logFile Absolute path and File name for log file.
-     * @return instance of LogService
      */
     
-    public static synchronized LogService init(ArrayBlockingQueue<String> servLog, String logFile) {
+    public static synchronized void init(ArrayBlockingQueue<String> servLog, String logFile, boolean isOn) {
 	if (instance == null) {
+        loggingON = isOn;
 	    instance = new LogService(servLog, logFile);
+
 	}
-	return instance;
     }
 
     private static void logger() throws InterruptedException {
@@ -61,8 +64,8 @@ public class LogService {
 	    SimpleFormatter formatter = new SimpleFormatter();
 	    fh.setFormatter(formatter);
 	    // System.getProperty("line.separator") is used because same string is used for console and file
-	    String log = new StringBuilder().append("Logging Service Started in: ").append(logFile)
-		    .append(System.getProperty("line.separator")).append("==============================").toString();
+	    String log = "Logging Service Started in: " + logFile + System.getProperty("line.separator") +
+        "==============================";
 	    // Allows to orderly finish thread. Waits for stop to be true to know when to stop
 	    do {
 		logger.info(log);
@@ -78,7 +81,8 @@ public class LogService {
     }
 
     static void logMessage(String message){
-        servLog.add(message);
+        if (loggingON) servLog.add(message);
+        else System.out.println(message);
     }
     /**
      * Terminate the logging Thread.
