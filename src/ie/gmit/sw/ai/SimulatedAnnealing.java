@@ -1,5 +1,7 @@
 package ie.gmit.sw.ai;
 
+import sun.rmi.runtime.Log;
+
 import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
@@ -19,10 +21,16 @@ public class SimulatedAnnealing {
         this.temperature = temperature;
     }
 
+    public void setBlockLetters(char[] blockLetters) {
+        this.blockLetters = blockLetters;
+    }
+
     public Result decrypt() {
         char[] parent = shuffle(blockLetters.clone());
         String decrypTextParent = "";
         double parentProb = 0;
+        Result bestResult = new Result();
+        bestResult.setProbability(logProbability(decryptText(sample,String.valueOf(parent)), ngrams));
         for (int temp = temperature; temp >= 0; temp--) {
             for (int transitions = trans; transitions >= 0; transitions--) {
                 char[] child = shuffle(parent);
@@ -34,13 +42,20 @@ public class SimulatedAnnealing {
                 if (delta > 0) {
                     parent = child;
                     //System.out.println("Parent: " + String.valueOf(parent) + " Child: " + String.valueOf(child));
-                } else {
+                } else if (temp > 0){
                     //System.out.println("Child: " + childProb + " exp(-delta/temp): " + Math.exp(-delta / temp));
          // Need to add randomness to search algorithm !!
-                    if (logProbability(decrypTextChild, ngrams) == Math.exp(-delta / temp)) {
+                    //LogService.logMessage("Random: " + Math.random()*10);
+                    //LogService.logMessage(String.valueOf(Math.exp(-delta / temp)));
+                    if (Math.random()*10 > Math.exp(-delta / temp)) {
                         //System.out.println("*Parent: " + String.valueOf(parent) + " Child: " + String.valueOf(child));
                         parent = child;
                     }
+                }
+                if(childProb > bestResult.getProbability()){
+                    bestResult.setProbability(childProb);
+                    bestResult.setKey(String.valueOf(child));
+                    bestResult.setPlainText(decrypTextChild);
                 }
 
                 //System.out.println(decryptText(sampleDev, String.valueOf(parent)));
@@ -53,19 +68,19 @@ public class SimulatedAnnealing {
             }
             //System.out.println(decryptText(sample, String.valueOf(parent)));
         }
-        return new Result(decrypTextParent, String.valueOf(parent), parentProb);
+        return bestResult;
     }
 
 
-    private String decryptText(String inputText, String key)
+    static String decryptText(String inputText, String key)
     {
-        PlayfairBlock playfairBlock = new PlayfairBlock(key);
-        char[][] digraphs = playfairBlock.prepareInputText(inputText);
+        Playfair playfair = new Playfair(key);
+        char[][] digraphs = playfair.prepareInputText(inputText);
         StringBuilder sb_decryptedTextBuilder = new StringBuilder();
 
         for(char[] each_digraph : digraphs)
         {
-            sb_decryptedTextBuilder.append(playfairBlock.decryptDigraph(each_digraph));
+            sb_decryptedTextBuilder.append(playfair.decryptDigraph(each_digraph));
         }
         return sb_decryptedTextBuilder.toString();
     }
@@ -85,7 +100,7 @@ public class SimulatedAnnealing {
         return newKey;
     }
 
-    private double logProbability(String sample , HashMap<String, Double> ngrams){
+    static double logProbability(String sample , HashMap<String, Double> ngrams){
         double probability = 0;
         sample = sample.toUpperCase();
         for (int index = 0; index <= (sample.length() - 4); index++) {

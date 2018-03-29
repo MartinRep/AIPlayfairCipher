@@ -2,15 +2,15 @@ package ie.gmit.sw.ai;
 
 import java.util.*;
 
-public class PlayfairBlock 
+public class Playfair
 {
 	private char[][] cipherTable;
-    private ArrayList<Character> blockLetters = new ArrayList<>(Arrays.asList('a','b','c','d','e','f','g','h','i','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'));
+    private ArrayList<Character> blockLetters = new ArrayList<>(Arrays.asList('A','B','C','D','E','F','G','H','I','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'));
 	private HashMap<Character, Integer[]> index = new HashMap<>();
 
-	PlayfairBlock(String key)
+	Playfair(String key)
 	{
-		this.cipherTable = prepareBlock(key.toLowerCase().toCharArray());
+		this.cipherTable = prepareBlock(key.toUpperCase().toCharArray());
 		for(int i = 0; i < this.cipherTable.length; i++)
         {
             for(int j = 0; j < this.cipherTable[i].length; j++)
@@ -23,7 +23,7 @@ public class PlayfairBlock
     char[][] prepareInputText(String inputText)
     {
         inputText = inputText.replaceAll("\\s", "");
-        inputText = inputText.toLowerCase();
+        inputText = inputText.toUpperCase();
         char[][] digraphs = new char[inputText.length() / 2 ][2];
         if(inputText.length() % 2 != 0)
         {
@@ -119,7 +119,7 @@ public class PlayfairBlock
 	}
 
     public static char[] getBlockLetters() {
-        ArrayList<Character> block = new ArrayList<>(Arrays.asList('a','b','c','d','e','f','g','h','i','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'));
+        ArrayList<Character> block = new ArrayList<>(Arrays.asList('A','B','C','D','E','F','G','H','I','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'));
         return Collections.singletonList(block).toString().replaceAll("[,\\s\\[\\]]", "").toCharArray();
     }
 

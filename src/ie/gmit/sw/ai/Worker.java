@@ -23,11 +23,15 @@ public class Worker implements Runnable{
     @Override
     public void run() {
         SimulatedAnnealing simulatedAnnealing = new SimulatedAnnealing(String.valueOf(sample), ngrams, blockLetters, transitions, temp);
-        Result result = simulatedAnnealing.decrypt();
-        try {
-            results.put(result);
-        } catch (InterruptedException e) {
-            LogService.logMessage(e.getMessage());
+        while (true){
+            Result result = simulatedAnnealing.decrypt();
+            try {
+                results.put(result);
+            } catch (InterruptedException e) {
+                LogService.logMessage(e.getMessage());
+            }
+            simulatedAnnealing.setBlockLetters(result.getKey().toCharArray());
         }
+
     }
 }

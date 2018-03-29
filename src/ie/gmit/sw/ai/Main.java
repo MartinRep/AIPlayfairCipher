@@ -12,13 +12,13 @@ public class Main {
     private static Thread stopAnytime;
 
     public static void main(String[] args) {
-        int sampleSize = 500;
-        int transitions = 50;
+        int sampleSize = 300;
+        int transitions = 500;
         int temp = 10;
-        int numOfWorkers = 2;
+        int numOfWorkers = 5;
         char [] sample = new char[sampleSize];
         ArrayBlockingQueue<String> servLog = new ArrayBlockingQueue<>(numOfWorkers);
-        char[] blockLetters = PlayfairBlock.getBlockLetters();
+        char[] blockLetters = Playfair.getBlockLetters();
         String ngramFile = "resources/4grams.txt";
         String encryptedFile = "resources/devHobbit.txt";
         String encryptedURL = "https://drive.google.com/file/d/193tHElB0VFH5rfT2woBr5jy_1NyV_DvE/view?usp=sharing";
@@ -38,15 +38,19 @@ public class Main {
             shutdown(1);
         }
         System.out.println("Running Play-fair crack, this could take a few minutes..");
-        Worker[] workers = new Worker[numOfWorkers];
+        String devKey = "THEQUICKBROWNFXMPDVLAZYGS";
+        String devPlainText = SimulatedAnnealing.decryptText(String.valueOf(sample), devKey);
+        System.out.println("Plain Text: " + devPlainText);
+        double devProb = SimulatedAnnealing.logProbability(devPlainText, ngrams);
+        System.out.println("Base Probability: " + String.valueOf(devProb));
+
         Thread[] threads = new Thread[numOfWorkers];
         for (int i = 0; i < numOfWorkers; i++) {
-            workers[i] = new Worker(sample, ngrams, blockLetters, (transitions*(100*(i+1))), temp, results);
-            threads[i] = new Thread(workers[i]);
+            threads[i] = new Thread(new Worker(sample, ngrams, blockLetters, (transitions*(100*(i+1))), temp, results));
             threads[i].start();
         }
         stopAnytime = new Thread(() -> {
-            System.out.println("Press RETURN key to Stop the crack process at anytime.");
+            System.out.println("Press RETURN key to Stop the process at anytime.");
             Scanner s = new Scanner(System.in);
             s.nextLine();
             System.out.println("Interrupted by user.");
@@ -55,15 +59,17 @@ public class Main {
         });
         stopAnytime.start();
         int numResults = 0;
-        while(numResults < numOfWorkers && !stop){
+        Result bestResult = new Result("","", Double.NEGATIVE_INFINITY);
+        while(!stop){
                 Result result = results.poll();
-                if(result != null){
-                    LogService.logMessage(result.toString());
+                if(result != null && result.getProbability() > bestResult.getProbability()){
                     numResults++;
                     finalResults.add(result);
+                    bestResult = result;
+                    LogService.logMessage("Best result so far - "+ System.lineSeparator() + bestResult.toString());
                 }
         }
-        Result bestResult = new Result("","", Double.NEGATIVE_INFINITY);
+
         for (Result result: finalResults) {
             if(bestResult.getProbability() < result.getProbability()){
                 bestResult = result;
