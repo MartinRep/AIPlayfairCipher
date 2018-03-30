@@ -13,9 +13,9 @@ public class Main {
 
     public static void main(String[] args) {
         int sampleSize = 300;
-        int transitions = 500;
+        int transitions = 1000;
         int temp = 10;
-        int numOfWorkers = 5;
+        int numOfWorkers = 1;
         char [] sample = new char[sampleSize];
         ArrayBlockingQueue<String> servLog = new ArrayBlockingQueue<>(numOfWorkers);
         char[] blockLetters = Playfair.getBlockLetters();
