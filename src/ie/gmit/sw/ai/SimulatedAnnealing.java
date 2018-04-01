@@ -47,7 +47,7 @@ public class SimulatedAnnealing {
                 delta = childProb - parentProb;
                 if (delta > 0) {
                     parent = child.clone();
-                } else if (Math.pow(Math.E,(delta/temp)) >= ThreadLocalRandom.current().nextDouble(1.0)) {
+                } else if (Math.exp(delta/temp) >= ThreadLocalRandom.current().nextDouble(1.0)) {
                    // System.out.println(Math.pow(Math.E,(delta/temp)));
                         parent = child.clone();
                     }
@@ -62,7 +62,7 @@ public class SimulatedAnnealing {
      * @param key - 25 character key used to decrypt inputText
      * @return Plain-decrypted text
      */
-    private String decryptText(String inputText, String key)
+    static String decryptText(String inputText, String key)
     {
         Playfair playfair = new Playfair(key);
         char[][] digraphs = playfair.prepareInputText(inputText);

@@ -1,5 +1,7 @@
 package ie.gmit.sw.ai;
 
+import sun.rmi.runtime.Log;
+
 import java.io.*;
 import java.net.URL;
 import java.util.*;
@@ -24,13 +26,14 @@ public class CipherBreaker {
         ArrayBlockingQueue<String> servLog = new ArrayBlockingQueue<>(numOfWorkers);
         char[] blockLetters = Playfair.getBlockLetters();
         String ngramFile = "./4grams.txt";
-        String encryptedFile = "resources/devHobbit.txt";
-        String encryptedURL = "https://drive.google.com/file/d/193tHElB0VFH5rfT2woBr5jy_1NyV_DvE/view?usp=sharing";
+        String encryptedFile = "", encryptedURL = "", outFile;
         String logFile = "logfile.txt";
         HashMap<String, Double> ngrams = new HashMap<>();
         ArrayBlockingQueue<Result> results = new ArrayBlockingQueue<>(numOfWorkers);
         Boolean loggingON = false;
         int choice = 0;
+        Scanner sc = new Scanner(System.in);
+        Scanner fs = new Scanner(System.in);
 
         threads = new Thread[numOfWorkers + 1];
 
@@ -45,10 +48,7 @@ public class CipherBreaker {
             System.out.println("3. File from online location (URL)");
             System.out.println("4. Exit\n");
             System.out.print("Please enter your choice: ");
-            Scanner sc = new Scanner(System.in);
-            Scanner fs = new Scanner(System.in);
             choice = sc.nextInt();
-            String filename;
 
             switch (choice){
                 case 1:
@@ -56,33 +56,37 @@ public class CipherBreaker {
                     System.out.println("Logging service flipped.");
                     break;
                 case 2:
-                    LogService.logMessage("Enter filename with path ('./hobbit.txt'): ");
-                    filename = fs.nextLine();
+                    System.out.println("Enter filename with path ('./hobbit.txt'): ");
+                    encryptedFile = fs.nextLine();
                     try {
-                        sample = getFromFile(filename, sampleSize);
+                        sample = getFromFile(encryptedFile, sampleSize);
                     } catch (IOException e) {
-                        LogService.logMessage("Error processing the file! Error: " + e.getMessage());
+                        System.out.println("Error processing the file! Error: " + e.getMessage());
                         shutdown(1);
                     }
                     break;
                 case 3:
-                    LogService.logMessage("Enter filename with URL ('http://www.myFileStorage/hobbit.txt'): ");
-                    filename = fs.nextLine();
+                    System.out.println("Enter filename with URL ('http://www.myFileStorage/hobbit.txt'): ");
+                    encryptedURL = fs.nextLine();
                     try {
-                        sample = getFromURL(filename, sampleSize);
+                        sample = getFromURL(encryptedURL, sampleSize);
                     } catch (IOException e) {
-                        LogService.logMessage("Error processing the file! Error: " + e.getMessage());
+                        System.out.println("Error processing the file! Error: " + e.getMessage());
                         shutdown(1);
                     }
                     break;
                 case 4:
-                    LogService.logMessage("Exiting...");
+                    System.out.println("Exiting...");
                     shutdown(0);
                     break;
                  default:
                      choice = 0;
             }
         }
+        // get output file name
+        System.out.println("Enter output filename (decryptedHobbit.txt): ");
+        outFile = fs.nextLine();
+
         //Starts a logging service.
         LogService.init(servLog, logFile, loggingON);
         //Retrieve the necessary data
@@ -116,8 +120,30 @@ public class CipherBreaker {
                 if(result != null && bestResult.getProbability() < result.getProbability()){
                     bestResult = result;
                     LogService.logMessage("Best result so far - "+ System.lineSeparator() + bestResult.toString());
+                    System.out.println("Press RETURN key to Stop the process at anytime.");
                 }
         }
+        // output decrypted text to a file.
+        String line;
+        try {
+            BufferedReader in;
+            if(encryptedFile.equals("")){
+                URL url = new URL(encryptedURL);
+                in = new BufferedReader(new InputStreamReader(url.openStream()));
+            } else {
+                FileReader fr = new FileReader(encryptedFile);
+                in = new BufferedReader(fr);
+            }
+            while ((line = in.readLine()) != null){
+                PrintWriter writer = new PrintWriter(outFile, "UTF-8");
+                writer.println(SimulatedAnnealing.decryptText(line, bestResult.getKey()));
+            }
+            LogService.logMessage("Decrypted Text saved to " + outFile);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         shutdown(0);
     }
 
