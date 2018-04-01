@@ -1,12 +1,22 @@
+//Adopted from: https://github.com/ayushn21/Playfair-Cipher
 package ie.gmit.sw.ai;
 
 import java.util.*;
+
+/**
+ * All methods needed to decrypt a playfair cipher into plain text.
+ */
 
 public class Playfair
 {
 	private char[][] cipherTable;
     private ArrayList<Character> blockLetters = new ArrayList<>(Arrays.asList('A','B','C','D','E','F','G','H','I','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'));
 	private HashMap<Character, Integer[]> index = new HashMap<>();
+
+    /**
+     * Initiate the Playfair decryptor
+     * @param key Decryption key.
+     */
 
 	Playfair(String key)
 	{
@@ -19,6 +29,12 @@ public class Playfair
             }
         }
 	}
+
+    /**
+     * Prepare the encrypted text. Converts String into 2d char array.
+     * @param inputText Encrypted text
+     * @return 2d char array
+     */
 
     char[][] prepareInputText(String inputText)
     {
@@ -64,7 +80,13 @@ public class Playfair
 		return table;
 	}
 
-	public String decryptDigraph(char[] digraph)
+    /**
+     * Decrypt character pair according to rules of Playfair cipher.
+     * @param digraph pair of characters
+     * @return String of decrypted characters pair
+     */
+
+	String decryptDigraph(char[] digraph)
 	{
 		Integer[] coordsOfCharacter1 = index.get(digraph[0]);
 		Integer[] coordsOfCharacter2 = index.get(digraph[1]);

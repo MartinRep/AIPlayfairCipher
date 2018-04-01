@@ -8,7 +8,7 @@ import java.util.logging.SimpleFormatter;
 
 /**
  * Logging service Singleton class, used to log (console and file) warnings, errors 
- * by whole application via ArrayBlockingQueue servLog.
+ * by whole application via ArrayBlockingQueue servLog and static method logMessage.
  * Runs in it's own Thread.
  * 
  * @author Martin Repicky g00328337@gmit.ie
@@ -68,8 +68,8 @@ public class LogService {
         "==============================";
 	    // Allows to orderly finish thread. Waits for stop to be true to know when to stop
 	    do {
-		logger.info(log);
-		log = servLog.take();
+            logger.info(log);
+            log = servLog.take();
 	    } while (!stop);
 	    log = "[Warning] Logging Service Stopped.";
 	    logger.info(log);
@@ -80,13 +80,20 @@ public class LogService {
 	}
     }
 
+    /**
+     * Logs message to console and log file. Static, accessible from ebery thread and class.
+     * @param message Message to be logged to console and file, depends on settings
+     */
+
     static void logMessage(String message){
         if (loggingON) servLog.add(message);
         else System.out.println(message);
     }
+
     /**
-     * Terminate the logging Thread.
+     * Terminates listening thread makes the process clean.
      */
+
     static void shutdown() {
 	stop = true;
     }

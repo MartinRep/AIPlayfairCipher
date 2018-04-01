@@ -1,72 +1,68 @@
 package ie.gmit.sw.ai;
 
-
 import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * Simulated Annealing Class - Generates new and modify decryption key with the Fisher–Yates Shuffle and asses the key probability.
+ * Uses Playfair class to decrypt sample text with key generated.
+ * Simulated annealing algorithm success depends on 3 parameters: Sample size, temperature and number of transitions.
+ * @author Martin Repicky g00328337@gmit.ie
+ *
+ */
 
 public class SimulatedAnnealing {
 
     private String sample;
     private HashMap<String, Double> ngrams;
-    private char[] blockLetters;
+    private char[] initKey;
     private int trans, temperature;
 
     SimulatedAnnealing(String sample, HashMap<String, Double> ngrams, char[] blockLetters, int trans, int temperature) {
         this.sample = sample;
         this.ngrams = ngrams;
-        this.blockLetters = blockLetters;
+        this.initKey = newShuffle(blockLetters);
         this.trans = trans;
         this.temperature = temperature;
     }
 
-    public void setBlockLetters(char[] blockLetters) {
-        this.blockLetters = blockLetters;
-    }
+    /**
+     * Fasade method to run Simulated Annealing algorithm on Playfair cypher.
+     * @return Result object containing decrypted text, key used for decryption and probability of the key being the right one.
+     */
 
-    public Result decrypt() {
-        char[] parent = newShuffle(blockLetters.clone());
-        String decrypTextParent;
-        double parentProb;
-        Result bestResult = new Result();
-        bestResult.setProbability(logProbability(decryptText(sample,String.valueOf(parent)), ngrams));
-        for (int temp = temperature; temp >= 0; temp--) {
+    public Result findKey() {
+        char[] parent = initKey.clone();
+        String decrypTextParent = "", decrypTextChild;
+        double parentProb = Double.NEGATIVE_INFINITY, childProb, delta;
+        for (int temp = temperature; temp >= 0; temp = temp - 1) {
             for (int transitions = trans; transitions >= 0; transitions--) {
-                // Shuffle needs to be changed
+                // new key child node created via The Fisher–Yates Shuffle
                 char[] child = shuffleKey(parent);
                 decrypTextParent = decryptText(sample, String.valueOf(parent));
-                String decrypTextChild = decryptText(sample, String.valueOf(child));
-                double childProb = logProbability(decrypTextChild, ngrams);
+                decrypTextChild = decryptText(sample, String.valueOf(child));
+                childProb = logProbability(decrypTextChild, ngrams);
                 parentProb = logProbability(decrypTextParent, ngrams);
-                double delta = childProb - parentProb;
+                delta = childProb - parentProb;
                 if (delta > 0) {
-                    parent = child;
-                    //System.out.println("Parent: " + String.valueOf(parent) + " Child: " + String.valueOf(child));
-                } else if (temp > 0){
-                    //System.out.println("Child: " + childProb + " exp(-delta/temp): " + Math.exp(-delta / temp));
-         // Need to add randomness to search algorithm !!
-//                    LogService.logMessage("Random: " + Math.random()*1000);
-//                    LogService.logMessage(String.valueOf(Math.exp(-delta / temp)));
-                    if (0.5 > Math.pow(Math.E,(-delta/temp))) {
-                        //System.out.println("*Parent: " + String.valueOf(parent) + " Child: " + String.valueOf(child));
-                        parent = child;
+                    parent = child.clone();
+                } else if (Math.pow(Math.E,(delta/temp)) >= ThreadLocalRandom.current().nextDouble(1.0)) {
+                   // System.out.println(Math.pow(Math.E,(delta/temp)));
+                        parent = child.clone();
                     }
-                }
-                if(childProb > bestResult.getProbability()){
-                    bestResult.setProbability(childProb);
-                    bestResult.setKey(String.valueOf(child));
-                    bestResult.setPlainText(decrypTextChild);
-                }
-
-                //System.out.println(decryptText(sampleDev, String.valueOf(parent)));
             }
-            //System.out.println(decryptText(sample, String.valueOf(parent)));
         }
-        return bestResult;
+        return new Result(decrypTextParent, String.valueOf(parent), parentProb);
     }
 
-
-    static String decryptText(String inputText, String key)
+    /**
+     * Decrypt text using key
+     * @param inputText Encrypted text
+     * @param key - 25 character key used to decrypt inputText
+     * @return Plain-decrypted text
+     */
+    private String decryptText(String inputText, String key)
     {
         Playfair playfair = new Playfair(key);
         char[][] digraphs = playfair.prepareInputText(inputText);
@@ -78,12 +74,16 @@ public class SimulatedAnnealing {
         return sb_decryptedTextBuilder.toString();
     }
 
+    /**
+     * Creates new random key
+     * @param key An old key, or set of Block letters.
+     * @return A new random key from elements of key provided
+     */
     private char[] newShuffle(char[] key) {
         int index;
         char[] newKey = key.clone();
-        Random random = ThreadLocalRandom.current();
         for (int i = newKey.length - 1; i > 0; i--) {
-            index = random.nextInt(i + 1);
+            index = getRandomInt(i + 1);
             if (index != i) {
                 newKey[index] ^= newKey[i];
                 newKey[i] ^= newKey[index];
@@ -93,9 +93,20 @@ public class SimulatedAnnealing {
         return newKey;
     }
 
+    /**
+     * The Fisher–Yates Shuffle algorithm. Modify existing key matrix with frequency:
+     * Swap single letters (90%)
+     • Swap random rows (2%)
+     • Swap columns (2%)
+     • Flip all rows (2%)
+     • Flip all columns (2%)
+     • Reverse the whole key (2%)
+     * @param key - Set of 25 Characters to modify
+     * @return A key modified according to the rules.
+     */
+
     private char[] shuffleKey(char[] key){
-        Random random = ThreadLocalRandom.current();
-        int rnd = random.nextInt(100);
+        int rnd = getRandomInt(100);
         char[][] keyMatrix = getMatrix(key);
         switch (rnd) {
             case 91:
@@ -124,13 +135,25 @@ public class SimulatedAnnealing {
         return getKey(keyMatrix);
     }
 
+    /**
+     * Convert 5x5 Matrix to and 1d array
+     * @param keyMatrix 2 dimensional 5x5 matrix
+     * @return 1 Dimensional Array of characters
+     */
+
     private char[] getKey(char[][] keyMatrix){
-        String key = "";
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 5; i++) {
-            key += String.valueOf(keyMatrix[i]);
+            sb.append(String.valueOf(keyMatrix[i]));
         }
-        return key.toCharArray();
+        return sb.toString().toCharArray();
     }
+
+    /**
+     * Converts 1d array into 5x5 Matrix
+     * @param key 1 dimensional array of Characters
+     * @return  5x5 Matrix of Characters
+     */
 
     private char[][] getMatrix(char[] key){
         char[][] keyMatrix = new char[5][5];
@@ -144,30 +167,54 @@ public class SimulatedAnnealing {
         return keyMatrix;
     }
 
+    /**
+     * Swap 2 random Columns in the array
+     * @param keyMatrix a 2 dimensional array
+     */
+
     private void swapRndColumns(char[][] keyMatrix){
         int col, colSwap;
-        Random random = ThreadLocalRandom.current();
         do {
-            colSwap = random.nextInt(5);
-            col = random.nextInt(5);
+            colSwap = getRandomInt(5);
+            col = getRandomInt(5);
         } while (col == colSwap);
         for (int i = 0; i < 5; i++) {
           swapChar(keyMatrix[i][col], keyMatrix[i][colSwap]);
         }
     }
 
+    /**
+     * A small utility function to generate random integer within the limit
+     * @param limit - Set a limit for random number generation. Maximum value of random number.
+     * @return A random integer within 0 - limit.
+     */
+
+    private int getRandomInt(int limit){
+        Random random = ThreadLocalRandom.current();
+        return random.nextInt(limit);
+    }
+
+    /**
+     * Swap 2 random rows in a 2 dimensional array.
+     * @param keyMatrix 2 dimensional array to modify.
+     */
+
     private void swapRndRows(char[][] keyMatrix){
         char[] tempRow;
         int row, rowSwap;
-        Random random = ThreadLocalRandom.current();
         do {
-            rowSwap = random.nextInt(5);
-            row = random.nextInt(5);
+            rowSwap = getRandomInt(5);
+            row = getRandomInt(5);
         } while (row == rowSwap);
         tempRow = keyMatrix[row];
         keyMatrix[row] = keyMatrix[rowSwap];
         keyMatrix[rowSwap] = tempRow;
     }
+
+    /**
+     * Reverse order of characters in every row in the 2d array
+     * @param keyMatrix 2d Array of Characters
+     */
 
     private void flipRows(char[][] keyMatrix) {
         for (int i = 0; i < 5; i++) {
@@ -177,6 +224,11 @@ public class SimulatedAnnealing {
         }
     }
 
+    /**
+     * Reverse order of characters in every column in the 2d array
+     * @param keyMatrix 2d Array of Characters
+     */
+
     private void flipColumns(char[][] keyMatrix) {
         for (int i = 0; i < 2; i++) {
             for (int j = 0; j < 5; j++) {
@@ -184,32 +236,54 @@ public class SimulatedAnnealing {
             }
         }
     }
-    
+
+    /**
+     * Reverse every row and every column in the Matrix
+     * @param keyMatrix 2d Matrix to be modified
+     */
     private void reverseKeyMatrix(char[][] keyMatrix){
         flipRows(keyMatrix);
         flipColumns(keyMatrix);
     }
 
+    /**
+     * Swap random letters in the 2d array of characters.
+     * @param keyMatrix 2d array of characters
+     */
+
     private void swapRndLetter(char[][] keyMatrix){
         int col,row, swapCol, swapRow;
-        Random random = ThreadLocalRandom.current();
         do {
-            col = random.nextInt(5);
-            row = random.nextInt(5);
-            swapCol = random.nextInt(5);
-            swapRow = random.nextInt(5);
+            col = getRandomInt(5);
+            row = getRandomInt(5);
+            swapCol = getRandomInt(5);
+            swapRow = getRandomInt(5);
         } while (row == swapRow && col == swapCol);
         swapChar(keyMatrix[row][col], keyMatrix[swapRow][swapCol]);
     }
 
+    /**
+     * Small utility function to swap 2 characters
+     * @param one first character to swap with second
+     * @param two second character to swap with first
+     */
+
+    @SuppressWarnings("UnusedAssignment")
     private void swapChar(char one, char two){
         char temp = one;
         one = two;
         two = temp;
     }
 
+    /**
+     * Calculate the the probability of a sample to be recognized as english language using 4grams as reference.
+     * Used as heuristic in search algorithm.
+     * @param sample Sample of decrypted text to be assessed as english text
+     * @param ngrams Collection of 4 letter grams used the most in english language and their frequency
+     * @return Log10 probability of the sample. (Usually in around -2000 range, depends on sample size)
+     */
 
-    static double logProbability(String sample , HashMap<String, Double> ngrams){
+    private static double logProbability(String sample , HashMap<String, Double> ngrams){
         double probability = 0;
         sample = sample.toUpperCase();
         for (int index = 0; index <= (sample.length() - 4); index++) {
