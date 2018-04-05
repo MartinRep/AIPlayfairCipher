@@ -18,15 +18,16 @@ public class CipherBreaker {
     private static Thread[] threads;
 
     public static void main(String[] args) {
-        int sampleSize = 300;
+        boolean dev = true;
+        int sampleSize = 500;
         int transitions = 50000;
-        int temp = 10;
+        int temp = 6;
         int numOfWorkers = 1;
         String sample = "";
         ArrayBlockingQueue<String> servLog = new ArrayBlockingQueue<>(numOfWorkers);
         char[] blockLetters = Playfair.getBlockLetters();
         String ngramFile = "./4grams.txt";
-        String encryptedFile = "", encryptedURL = "", outFile;
+        String encryptedFile = "./resources/devHobbit.txt", encryptedURL = "", outFile = "./decrypted.txt";
         String logFile = "logfile.txt";
         HashMap<String, Double> ngrams = new HashMap<>();
         ArrayBlockingQueue<Result> results = new ArrayBlockingQueue<>(numOfWorkers);
@@ -36,56 +37,64 @@ public class CipherBreaker {
         Scanner fs = new Scanner(System.in);
 
         threads = new Thread[numOfWorkers + 1];
+        if (!dev) {
+            while (choice < 2) {
+                //User Interface menu
+                System.out.println("\nSimulated Annealing algorithm to break Playfair cipher");
+                System.out.println("======================================================\n");
+                System.out.println("Please choose the file source:");
+                if (loggingON) System.out.println("1. Switch Logging service OFF");
+                else System.out.println("1. Switch Logging service ON");
+                System.out.println("2. File from local storage");
+                System.out.println("3. File from online location (URL)");
+                System.out.println("4. Exit\n");
+                System.out.print("Please enter your choice: ");
+                choice = sc.nextInt();
 
-        while(choice < 2){
-            //User Interface menu
-            System.out.println("\nSimulated Annealing algorithm to break Playfair cipher");
-            System.out.println("======================================================\n");
-            System.out.println("Please choose the file source:");
-            if(loggingON) System.out.println("1. Switch Logging service OFF");
-            else System.out.println("1. Switch Logging service ON");
-            System.out.println("2. File from local storage");
-            System.out.println("3. File from online location (URL)");
-            System.out.println("4. Exit\n");
-            System.out.print("Please enter your choice: ");
-            choice = sc.nextInt();
-
-            switch (choice){
-                case 1:
-                    loggingON ^= true;
-                    System.out.println("Logging service flipped.");
-                    break;
-                case 2:
-                    System.out.println("Enter filename with path ('./hobbit.txt'): ");
-                    encryptedFile = fs.nextLine();
-                    try {
-                        sample = getFromFile(encryptedFile, sampleSize);
-                    } catch (IOException e) {
-                        System.out.println("Error processing the file! Error: " + e.getMessage());
-                        shutdown(1);
-                    }
-                    break;
-                case 3:
-                    System.out.println("Enter filename with URL ('http://www.myFileStorage/hobbit.txt'): ");
-                    encryptedURL = fs.nextLine();
-                    try {
-                        sample = getFromURL(encryptedURL, sampleSize);
-                    } catch (IOException e) {
-                        System.out.println("Error processing the file! Error: " + e.getMessage());
-                        shutdown(1);
-                    }
-                    break;
-                case 4:
-                    System.out.println("Exiting...");
-                    shutdown(0);
-                    break;
-                 default:
-                     choice = 0;
+                switch (choice) {
+                    case 1:
+                        loggingON ^= true;
+                        System.out.println("Logging service flipped.");
+                        break;
+                    case 2:
+                        System.out.println("Enter filename with path ('./hobbit.txt'): ");
+                        encryptedFile = fs.nextLine();
+                        try {
+                            sample = getFromFile(encryptedFile, sampleSize);
+                        } catch (IOException e) {
+                            System.out.println("Error processing the file! Error: " + e.getMessage());
+                            shutdown(1);
+                        }
+                        break;
+                    case 3:
+                        System.out.println("Enter filename with URL ('http://www.myFileStorage/hobbit.txt'): ");
+                        encryptedURL = fs.nextLine();
+                        try {
+                            sample = getFromURL(encryptedURL, sampleSize);
+                        } catch (IOException e) {
+                            System.out.println("Error processing the file! Error: " + e.getMessage());
+                            shutdown(1);
+                        }
+                        break;
+                    case 4:
+                        System.out.println("Exiting...");
+                        shutdown(0);
+                        break;
+                    default:
+                        choice = 0;
+                }
+            }
+            // get output file name
+            System.out.println("Enter output filename (decryptedHobbit.txt): ");
+            outFile = fs.nextLine();
+        } else {
+            try {
+                sample = getFromFile(encryptedFile, sampleSize);
+            } catch (IOException e) {
+                System.out.println("Error processing the file! Error: " + e.getMessage());
+                shutdown(1);
             }
         }
-        // get output file name
-        System.out.println("Enter output filename (decryptedHobbit.txt): ");
-        outFile = fs.nextLine();
 
         //Starts a logging service.
         LogService.init(servLog, logFile, loggingON);
@@ -96,13 +105,22 @@ public class CipherBreaker {
             LogService.logMessage("Error reading ngrams file or the file format is not supported.");
             shutdown(2);
         }
+
+        //Dev only
+        if (dev){
+
+            LogService.logMessage(String.valueOf(SimulatedAnnealing.logProbability(sample, ngrams)));
+            LogService.logMessage(SimulatedAnnealing.decryptText(sample,"THEQUICKBROWNFXMPDVLAZYGS"));
+            LogService.logMessage(String.valueOf(SimulatedAnnealing.logProbability(SimulatedAnnealing.decryptText(sample,"THEQUICKBROWNFXMPDVLAZYGS"),ngrams)));
+        }
+
         System.out.println("======================================================\nRunning Play-fair crack, this could take a few minutes..");
         // Creates a pool of Workers, that can work on Playfair cypher in concurrence.
         for (int i = 0; i < numOfWorkers; i++) {
             threads[i] = new Thread(new Worker(sample, ngrams, blockLetters, transitions, temp, results));
             threads[i].start();
         }
-        // Creates stop event listener for user interruption.
+        // Creates stop listener for user interruption event.
         threads[numOfWorkers] = new Thread(() -> {
             System.out.println("Press RETURN key to Stop the process at anytime.");
             Scanner s = new Scanner(System.in);

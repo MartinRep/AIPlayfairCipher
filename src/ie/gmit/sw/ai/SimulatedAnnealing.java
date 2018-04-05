@@ -1,7 +1,6 @@
 package ie.gmit.sw.ai;
 
 import java.util.HashMap;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -16,15 +15,19 @@ public class SimulatedAnnealing {
 
     private String sample;
     private HashMap<String, Double> ngrams;
-    private char[] initKey;
+    private String initKey;
     private int trans, temperature;
 
     SimulatedAnnealing(String sample, HashMap<String, Double> ngrams, char[] blockLetters, int trans, int temperature) {
         this.sample = sample;
         this.ngrams = ngrams;
-        this.initKey = newShuffle(blockLetters);
+        this.initKey = newShuffle(String.valueOf(blockLetters));
         this.trans = trans;
         this.temperature = temperature;
+    }
+
+    public void setInitKey(String initKey) {
+        this.initKey = initKey;
     }
 
     /**
@@ -33,27 +36,39 @@ public class SimulatedAnnealing {
      */
 
     public Result findKey() {
-        char[] parent = initKey.clone();
+        String parent = String.valueOf(initKey);
         String decrypTextParent = "", decrypTextChild;
-        double parentProb = Double.NEGATIVE_INFINITY, childProb, delta;
-        for (int temp = temperature; temp >= 0; temp = temp - 1) {
-            for (int transitions = trans; transitions >= 0; transitions--) {
+        double parentProb, childProb, delta;
+        decrypTextParent = decryptText(sample, parent);
+        parentProb = logProbability(decrypTextParent, ngrams);
+        Result bestResult = new Result(decrypTextParent, parent, parentProb);
+        LogService.logMessage(bestResult.toString());
+        for (int temp = temperature; temp >= 0; temp--) {
+            for (int transitions = trans; transitions > 0; transitions--) {
                 // new key child node created via The Fisher–Yates Shuffle
-                char[] child = shuffleKey(parent);
-                decrypTextParent = decryptText(sample, String.valueOf(parent));
-                decrypTextChild = decryptText(sample, String.valueOf(child));
+                String child = shuffleKey(parent);
+                decrypTextChild = decryptText(sample, child);
                 childProb = logProbability(decrypTextChild, ngrams);
-                parentProb = logProbability(decrypTextParent, ngrams);
                 delta = childProb - parentProb;
                 if (delta > 0) {
-                    parent = child.clone();
-                } else if (Math.exp(delta/temp) >= ThreadLocalRandom.current().nextDouble(1.0)) {
-                   // System.out.println(Math.pow(Math.E,(delta/temp)));
-                        parent = child.clone();
+                    parent = child;
+                    parentProb = childProb;
+                } else {
+                    double prob = (Math.exp((delta / temp)));
+                    if (prob > ThreadLocalRandom.current().nextDouble() ){
+                        // System.out.println(Math.pow(Math.E,(delta/temp)));
+                        parent = child;
+                        parentProb = childProb;
                     }
+                }
+                if (parentProb > bestResult.getProbability()) {
+                    bestResult = new Result(decryptText(sample,parent), parent, parentProb);
+                    //LogService.logMessage(bestResult.toString());
+                }
             }
+
         }
-        return new Result(decrypTextParent, String.valueOf(parent), parentProb);
+        return bestResult;
     }
 
     /**
@@ -79,9 +94,9 @@ public class SimulatedAnnealing {
      * @param key An old key, or set of Block letters.
      * @return A new random key from elements of key provided
      */
-    private char[] newShuffle(char[] key) {
+    private String newShuffle(String  key) {
         int index;
-        char[] newKey = key.clone();
+        char[] newKey = key.toCharArray();
         for (int i = newKey.length - 1; i > 0; i--) {
             index = getRandomInt(i + 1);
             if (index != i) {
@@ -90,7 +105,7 @@ public class SimulatedAnnealing {
                 newKey[index] ^= newKey[i];
             }
         }
-        return newKey;
+        return String.valueOf(newKey);
     }
 
     /**
@@ -105,34 +120,31 @@ public class SimulatedAnnealing {
      * @return A key modified according to the rules.
      */
 
-    private char[] shuffleKey(char[] key){
-        int rnd = getRandomInt(100);
-        char[][] keyMatrix = getMatrix(key);
+    private String shuffleKey(String  key){
+        int rnd = getRandomInt(50);
+        char[][] keyMatrix = getMatrix(key.toCharArray());
+        char[][] newKeyMatrix;
         switch (rnd) {
-            case 91:
-            case 92:
-                swapRndRows(keyMatrix);
+            case 0:
+                newKeyMatrix= swapRndRows(keyMatrix);
                 break;
-            case 93:
-            case 94:
-                swapRndColumns(keyMatrix);
+            case 1:
+                newKeyMatrix= swapRndColumns(keyMatrix);
                 break;
-            case 95:
-            case 96:
-                flipRows(keyMatrix);
+            case 2:
+                newKeyMatrix= flipRows(keyMatrix);
                 break;
-            case 97:
-            case 98:
-                flipColumns(keyMatrix);
+            case 3:
+                newKeyMatrix= flipColumns(keyMatrix);
                 break;
-            case 99:
-                reverseKeyMatrix(keyMatrix);
+            case 4:
+                newKeyMatrix= reverseKeyMatrix(keyMatrix);
                 break;
             default:
-                swapRndLetter(keyMatrix);
+                newKeyMatrix= swapRndLetter(keyMatrix);
                 break;
         }
-        return getKey(keyMatrix);
+        return String.valueOf(getKey(newKeyMatrix));
     }
 
     /**
@@ -172,15 +184,18 @@ public class SimulatedAnnealing {
      * @param keyMatrix a 2 dimensional array
      */
 
-    private void swapRndColumns(char[][] keyMatrix){
+    private char[][] swapRndColumns(char[][] keyMatrix){
         int col, colSwap;
         do {
             colSwap = getRandomInt(5);
             col = getRandomInt(5);
         } while (col == colSwap);
         for (int i = 0; i < 5; i++) {
-          swapChar(keyMatrix[i][col], keyMatrix[i][colSwap]);
+          char temp = keyMatrix[i][col];
+            keyMatrix[i][col] = keyMatrix[i][colSwap];
+            keyMatrix[i][colSwap] = temp;
         }
+        return keyMatrix;
     }
 
     /**
@@ -190,8 +205,7 @@ public class SimulatedAnnealing {
      */
 
     private int getRandomInt(int limit){
-        Random random = ThreadLocalRandom.current();
-        return random.nextInt(limit);
+        return ThreadLocalRandom.current().nextInt(limit);
     }
 
     /**
@@ -199,7 +213,7 @@ public class SimulatedAnnealing {
      * @param keyMatrix 2 dimensional array to modify.
      */
 
-    private void swapRndRows(char[][] keyMatrix){
+    private char[][] swapRndRows(char[][] keyMatrix){
         char[] tempRow;
         int row, rowSwap;
         do {
@@ -209,6 +223,7 @@ public class SimulatedAnnealing {
         tempRow = keyMatrix[row];
         keyMatrix[row] = keyMatrix[rowSwap];
         keyMatrix[rowSwap] = tempRow;
+        return keyMatrix;
     }
 
     /**
@@ -216,12 +231,15 @@ public class SimulatedAnnealing {
      * @param keyMatrix 2d Array of Characters
      */
 
-    private void flipRows(char[][] keyMatrix) {
+    private char[][] flipRows(char[][] keyMatrix) {
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < 2; j++) {
-                swapChar(keyMatrix[i][j], keyMatrix[i][4 - j]);
+                char temp = keyMatrix[i][j];
+                keyMatrix[i][j] = keyMatrix[i][4 - j];
+                keyMatrix[i][4 - j] = temp;
             }
         }
+        return keyMatrix;
     }
 
     /**
@@ -229,21 +247,25 @@ public class SimulatedAnnealing {
      * @param keyMatrix 2d Array of Characters
      */
 
-    private void flipColumns(char[][] keyMatrix) {
+    private char[][] flipColumns(char[][] keyMatrix) {
         for (int i = 0; i < 2; i++) {
             for (int j = 0; j < 5; j++) {
-                swapChar(keyMatrix[i][j], keyMatrix[4 - i][j]);
+                char temp = keyMatrix[i][j];
+                keyMatrix[i][j] = keyMatrix[4 - i][j];
+                keyMatrix[4 - i][j] = temp;
             }
         }
+        return keyMatrix;
     }
 
     /**
      * Reverse every row and every column in the Matrix
      * @param keyMatrix 2d Matrix to be modified
      */
-    private void reverseKeyMatrix(char[][] keyMatrix){
-        flipRows(keyMatrix);
-        flipColumns(keyMatrix);
+    private char[][] reverseKeyMatrix(char[][] keyMatrix){
+        keyMatrix = flipRows(keyMatrix);
+        keyMatrix = flipColumns(keyMatrix);
+        return keyMatrix;
     }
 
     /**
@@ -251,7 +273,7 @@ public class SimulatedAnnealing {
      * @param keyMatrix 2d array of characters
      */
 
-    private void swapRndLetter(char[][] keyMatrix){
+    private char[][] swapRndLetter(char[][] keyMatrix){
         int col,row, swapCol, swapRow;
         do {
             col = getRandomInt(5);
@@ -259,20 +281,10 @@ public class SimulatedAnnealing {
             swapCol = getRandomInt(5);
             swapRow = getRandomInt(5);
         } while (row == swapRow && col == swapCol);
-        swapChar(keyMatrix[row][col], keyMatrix[swapRow][swapCol]);
-    }
-
-    /**
-     * Small utility function to swap 2 characters
-     * @param one first character to swap with second
-     * @param two second character to swap with first
-     */
-
-    @SuppressWarnings("UnusedAssignment")
-    private void swapChar(char one, char two){
-        char temp = one;
-        one = two;
-        two = temp;
+        char temp = keyMatrix[row][col];
+        keyMatrix[row][col] = keyMatrix[swapRow][swapCol];
+        keyMatrix[swapRow][swapCol] = temp;
+        return keyMatrix;
     }
 
     /**
@@ -283,7 +295,7 @@ public class SimulatedAnnealing {
      * @return Log10 probability of the sample. (Usually in around -2000 range, depends on sample size)
      */
 
-    private static double logProbability(String sample , HashMap<String, Double> ngrams){
+     static double logProbability(String sample , HashMap<String, Double> ngrams){
         double probability = 0;
         sample = sample.toUpperCase();
         for (int index = 0; index <= (sample.length() - 4); index++) {
