@@ -36,19 +36,27 @@ public class SimulatedAnnealing {
      */
 
     public Result findKey() {
+        //Key key = new Key();
         String parent = String.valueOf(initKey);
         String decrypTextParent = "", decrypTextChild;
         double parentProb, childProb, delta;
-        decrypTextParent = decryptText(sample, parent);
+        Grams grams = new Grams("4grams.txt");
+        try {
+            grams.loadGrams();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        decrypTextParent = decryptText(sample,parent);
         parentProb = logProbability(decrypTextParent, ngrams);
+        parentProb = grams.scoreText(decrypTextParent);
         Result bestResult = new Result(decrypTextParent, parent, parentProb);
-        LogService.logMessage(bestResult.toString());
         for (int temp = temperature; temp >= 0; temp--) {
             for (int transitions = trans; transitions > 0; transitions--) {
                 // new key child node created via The Fisher–Yates Shuffle
                 String child = shuffleKey(parent);
                 decrypTextChild = decryptText(sample, child);
                 childProb = logProbability(decrypTextChild, ngrams);
+                childProb = grams.scoreText(decrypTextChild);
                 delta = childProb - parentProb;
                 if (delta > 0) {
                     parent = child;
@@ -63,7 +71,7 @@ public class SimulatedAnnealing {
                 }
                 if (parentProb > bestResult.getProbability()) {
                     bestResult = new Result(decryptText(sample,parent), parent, parentProb);
-                    //LogService.logMessage(bestResult.toString());
+                    LogService.logMessage(bestResult.toString());
                 }
             }
 
@@ -144,7 +152,7 @@ public class SimulatedAnnealing {
                 newKeyMatrix= swapRndLetter(keyMatrix);
                 break;
         }
-        return String.valueOf(getKey(newKeyMatrix));
+        return getKey(newKeyMatrix);
     }
 
     /**
@@ -153,12 +161,12 @@ public class SimulatedAnnealing {
      * @return 1 Dimensional Array of characters
      */
 
-    private char[] getKey(char[][] keyMatrix){
+    private String getKey(char[][] keyMatrix){
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 5; i++) {
             sb.append(String.valueOf(keyMatrix[i]));
         }
-        return sb.toString().toCharArray();
+        return sb.toString();
     }
 
     /**
@@ -296,15 +304,16 @@ public class SimulatedAnnealing {
      */
 
      static double logProbability(String sample , HashMap<String, Double> ngrams){
-        double probability = 0;
+        double probability = 0, score = 0;
         sample = sample.toUpperCase();
         for (int index = 0; index <= (sample.length() - 4); index++) {
             String gram = sample.substring(index, index + 4);
             if(ngrams.containsKey(gram)){
                 probability += ngrams.get(gram);
-            }
+            } else probability += 1;
+            score += Math.log10(probability / ngrams.get("TOTAL"));
         }
-        return probability;
+        return score;
     }
 
 }

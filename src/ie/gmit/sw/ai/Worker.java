@@ -33,8 +33,6 @@ public class Worker implements Runnable{
     @Override
     public void run() {
         SimulatedAnnealing simulatedAnnealing = new SimulatedAnnealing(sample, ngrams, blockLetters, transitions, temp);
-        //noinspection InfiniteLoopStatement
-        while (true){
             Result result = simulatedAnnealing.findKey();
             try {
                 results.put(result);
@@ -42,7 +40,5 @@ public class Worker implements Runnable{
             } catch (InterruptedException e) {
                 LogService.logMessage(e.getMessage());
             }
-        }
-
     }
 }

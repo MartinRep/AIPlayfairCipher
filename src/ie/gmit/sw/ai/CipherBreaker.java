@@ -21,7 +21,7 @@ public class CipherBreaker {
         boolean dev = true;
         int sampleSize = 500;
         int transitions = 50000;
-        int temp = 6;
+        int temp = 11;
         int numOfWorkers = 1;
         String sample = "";
         ArrayBlockingQueue<String> servLog = new ArrayBlockingQueue<>(numOfWorkers);
@@ -112,6 +112,13 @@ public class CipherBreaker {
             LogService.logMessage(String.valueOf(SimulatedAnnealing.logProbability(sample, ngrams)));
             LogService.logMessage(SimulatedAnnealing.decryptText(sample,"THEQUICKBROWNFXMPDVLAZYGS"));
             LogService.logMessage(String.valueOf(SimulatedAnnealing.logProbability(SimulatedAnnealing.decryptText(sample,"THEQUICKBROWNFXMPDVLAZYGS"),ngrams)));
+            Grams grams = new Grams("4grams.txt");
+            try {
+                grams.loadGrams();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            LogService.logMessage(String.valueOf(grams.scoreText(SimulatedAnnealing.decryptText(sample,"THEQUICKBROWNFXMPDVLAZYGS"))));
         }
 
         System.out.println("======================================================\nRunning Play-fair crack, this could take a few minutes..");
@@ -183,11 +190,12 @@ public class CipherBreaker {
             {
                 String [] values = line.split(" ");
                 ngrams.put(values[0], Double.valueOf(values[1]));
-                totalNgrams += Long.valueOf(values[1]);
+                totalNgrams += Double.valueOf(values[1]);
             }
-            for (String ngram: ngrams.keySet()) {
-                ngrams.replace(ngram, Math.log10(ngrams.get(ngram) / totalNgrams));
-            }
+            ngrams.put("TOTAL",totalNgrams);
+//            for (String ngram: ngrams.keySet()) {
+//                ngrams.replace(ngram, Math.log10(ngrams.get(ngram) / totalNgrams));
+//            }
         return ngrams;
     }
 
