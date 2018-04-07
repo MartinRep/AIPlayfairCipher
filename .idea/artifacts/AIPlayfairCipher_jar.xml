@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="AIPlayfairCipher:jar">
+    <output-path>$PROJECT_DIR$/../out/artifacts/AIPlayfairCipher_jar</output-path>
+    <root id="archive" name="AIPlayfairCipher.jar">
+      <element id="module-output" name="AIPlayfairCipher" />
+    </root>
+  </artifact>
+</component>

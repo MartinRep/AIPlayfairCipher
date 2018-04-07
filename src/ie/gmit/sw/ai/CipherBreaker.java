@@ -13,11 +13,20 @@ import java.util.concurrent.ArrayBlockingQueue;
  * Console, menu based application using Simulated Annealing to crack Playfair encryption with out provided decryption key.
  * Success of the algorithm depends on parameters Temperature, Transitions and sample size.
  * Multithreaded, with number of workers running simultaneously. Logged.
+ * @author Martin Repicky g00328337@gmit.ie
  */
 
 public class CipherBreaker {
     private static Boolean stop = false;
     private static Thread[] threads;
+
+    /**
+     * Runner method. Creates User interface menu to choose encrypted file from local storage or URL.
+     * Creates Workers to process the file and decrypt the text contained.
+     * User interruption listener thread listen to users RETURN key to stop workers, display the best resutl
+     * and save the decrypted text to file user specified.
+     * @param args In case of CLI commands processing.
+     */
 
     public static void main(String[] args) {
         boolean dev = false;
@@ -31,7 +40,9 @@ public class CipherBreaker {
         String ngramFile = "./4grams.txt";
         String encryptedFile = "./resources/devHobbit.txt", encryptedURL = "", outFile = "./decrypted.txt";
         String logFile = "logfile.txt";
+        // To collect results from multithreaded workers.
         ArrayBlockingQueue<Result> results = new ArrayBlockingQueue<>(numOfWorkers);
+        // Logging service switch
         Boolean loggingON = false;
         int choice = 0;
         Scanner sc = new Scanner(System.in);
@@ -40,8 +51,8 @@ public class CipherBreaker {
         //An extra thread is for user interruption event listener
         threads = new Thread[numOfWorkers + 1];
         if (!dev) {
+            //User Interface menu
             while (choice < 2) {
-                //User Interface menu
                 System.out.println("\nSimulated Annealing algorithm to break Playfair cipher");
                 System.out.println("======================================================\n");
                 System.out.println("Please choose the file source:");
@@ -147,6 +158,7 @@ public class CipherBreaker {
         // output decrypted text to a file.
         String line;
         try {
+            PrintWriter writer = new PrintWriter(outFile, "UTF-8");
             BufferedReader in;
             if(encryptedFile.equals("")){
                 URL url = new URL(encryptedURL);
@@ -156,9 +168,9 @@ public class CipherBreaker {
                 in = new BufferedReader(fr);
             }
             while ((line = in.readLine()) != null){
-                PrintWriter writer = new PrintWriter(outFile, "UTF-8");
                 writer.println(SimulatedAnnealing.decryptText(line, bestResult.getKey()));
             }
+            writer.close();
             LogService.logMessage("Decrypted Text saved to " + outFile);
 
         } catch (IOException e) {

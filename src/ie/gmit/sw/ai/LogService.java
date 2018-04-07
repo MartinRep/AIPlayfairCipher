@@ -44,7 +44,7 @@ public class LogService {
      * @param logFile Absolute path and File name for log file.
      */
     
-    public static synchronized void init(ArrayBlockingQueue<String> servLog, String logFile, boolean isOn) {
+    static synchronized void init(ArrayBlockingQueue<String> servLog, String logFile, boolean isOn) {
 	if (instance == null) {
         loggingON = isOn;
 	    instance = new LogService(servLog, logFile);
@@ -86,7 +86,7 @@ public class LogService {
      */
 
     static void logMessage(String message){
-        if (loggingON) servLog.add(message);
+        if (loggingON) servLog.offer(message);
         else System.out.println(message);
     }
 

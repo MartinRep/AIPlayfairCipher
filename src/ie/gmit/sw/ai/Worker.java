@@ -27,7 +27,8 @@ public class Worker implements Runnable{
     }
 
     /**
-     * Creates new instance of SimulatedAnnealing and attempt to find correct key. Continue to do so, until user stops it.
+     * Creates new instance of SimulatedAnnealing and attempt to find correct key. Publish the result to the ArrayBlockingQueue,
+     * to be picked up by CypherBreaker main method, where is displayed to the user to confirm the correct decryption.
      */
 
     @Override

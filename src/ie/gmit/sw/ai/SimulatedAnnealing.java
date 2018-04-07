@@ -33,7 +33,10 @@ class SimulatedAnnealing {
     }
 
     /**
-     * Fasade method to run Simulated Annealing algorithm on Playfair cypher.
+     * Fasade method to run Simulated Annealing algorithm on Playfair cypher. Generate random decryption key,
+     * measure it's 4gram score and then creates modified key with Fisher-Yates algorithm and measure it's score.
+     * If score is better then last keeps it, worse drop it. Added randomness to avoid plato. The closer to the key,
+     * the less randomness is added.
      * @return Result object containing decrypted text, key used for decryption and probability of the key being the right one.
      */
 

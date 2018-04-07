@@ -4,6 +4,12 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Class to handle 4 grams to measure the text english like property. 4 characters and their frequency
+ * in English language.
+ *  @author Martin Repicky g003238337@gmit.ie
+ */
+
 class Grams {
 
 	private Map<String, Long> grams;
@@ -12,7 +18,11 @@ class Grams {
 		this.grams = new HashMap<>();
 	}
 
-	//Process 4grams from a file to HashMap
+    /**
+     * Process 4grams from a file into HashMap
+     * @param fileName Name of the file containing 4grams and their frequency
+     * @throws IOException Usually File Not Found
+     */
 	void loadGrams(String fileName)  throws IOException {
 		long total = 0;
 		BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(new File(fileName))));
@@ -30,6 +40,11 @@ class Grams {
 		br.close();
 	}
 
+    /**
+     * Measure the whole text 4grams frequency and return probability how much Text is English-like.
+     * @param cipherText Text to be measured.
+     * @return Single double digit. Usually around -2000
+     */
 	double scoreText(String cipherText) {
 		double score = 0;
 		long frequency;
