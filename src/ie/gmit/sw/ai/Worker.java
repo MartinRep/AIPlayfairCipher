@@ -12,14 +12,14 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 public class Worker implements Runnable{
     private String sample;
-    private HashMap<String, Double> ngrams;
+    private Grams grams;
     private char[] blockLetters;
     private int transitions, temp;
     private ArrayBlockingQueue<Result> results;
 
-    public Worker(String sample, HashMap<String, Double> ngrams, char[] blockLetters, int transitions, int temp, ArrayBlockingQueue<Result> results) {
+    Worker(String sample, Grams grams, char[] blockLetters, int transitions, int temp, ArrayBlockingQueue<Result> results) {
         this.sample = sample;
-        this.ngrams = ngrams;
+        this.grams = grams;
         this.blockLetters = blockLetters;
         this.transitions = transitions;
         this.temp = temp;
@@ -32,7 +32,7 @@ public class Worker implements Runnable{
 
     @Override
     public void run() {
-        SimulatedAnnealing simulatedAnnealing = new SimulatedAnnealing(sample, ngrams, blockLetters, transitions, temp);
+        SimulatedAnnealing simulatedAnnealing = new SimulatedAnnealing(sample, blockLetters, transitions, temp, grams, results);
             Result result = simulatedAnnealing.findKey();
             try {
                 results.put(result);

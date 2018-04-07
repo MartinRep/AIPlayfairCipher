@@ -1,6 +1,6 @@
 package ie.gmit.sw.ai;
 
-import java.util.HashMap;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -11,22 +11,24 @@ import java.util.concurrent.ThreadLocalRandom;
  *
  */
 
-public class SimulatedAnnealing {
+class SimulatedAnnealing {
 
     private String sample;
-    private HashMap<String, Double> ngrams;
     private String initKey;
     private int trans, temperature;
+    private Grams grams;
+    private ArrayBlockingQueue<Result> results;
 
-    SimulatedAnnealing(String sample, HashMap<String, Double> ngrams, char[] blockLetters, int trans, int temperature) {
+    SimulatedAnnealing(String sample, char[] blockLetters, int trans, int temperature, Grams grams, ArrayBlockingQueue<Result> results) {
         this.sample = sample;
-        this.ngrams = ngrams;
         this.initKey = newShuffle(String.valueOf(blockLetters));
         this.trans = trans;
         this.temperature = temperature;
+        this.grams = grams;
+        this.results = results;
     }
 
-    public void setInitKey(String initKey) {
+    void setInitKey(String initKey) {
         this.initKey = initKey;
     }
 
@@ -35,19 +37,12 @@ public class SimulatedAnnealing {
      * @return Result object containing decrypted text, key used for decryption and probability of the key being the right one.
      */
 
-    public Result findKey() {
+    Result findKey() {
         //Key key = new Key();
         String parent = String.valueOf(initKey);
-        String decrypTextParent = "", decrypTextChild;
+        String decrypTextParent, decrypTextChild;
         double parentProb, childProb, delta;
-        Grams grams = new Grams("4grams.txt");
-        try {
-            grams.loadGrams();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         decrypTextParent = decryptText(sample,parent);
-        parentProb = logProbability(decrypTextParent, ngrams);
         parentProb = grams.scoreText(decrypTextParent);
         Result bestResult = new Result(decrypTextParent, parent, parentProb);
         for (int temp = temperature; temp >= 0; temp--) {
@@ -55,7 +50,6 @@ public class SimulatedAnnealing {
                 // new key child node created via The Fisher–Yates Shuffle
                 String child = shuffleKey(parent);
                 decrypTextChild = decryptText(sample, child);
-                childProb = logProbability(decrypTextChild, ngrams);
                 childProb = grams.scoreText(decrypTextChild);
                 delta = childProb - parentProb;
                 if (delta > 0) {
@@ -64,15 +58,16 @@ public class SimulatedAnnealing {
                 } else {
                     double prob = (Math.exp((delta / temp)));
                     if (prob > ThreadLocalRandom.current().nextDouble() ){
-                        // System.out.println(Math.pow(Math.E,(delta/temp)));
                         parent = child;
                         parentProb = childProb;
                     }
                 }
                 if (parentProb > bestResult.getProbability()) {
                     bestResult = new Result(decryptText(sample,parent), parent, parentProb);
-                    LogService.logMessage(bestResult.toString());
+                    //dev only
+                    //LogService.logMessage(bestResult.toString());
                 }
+                results.offer(bestResult);
             }
 
         }
@@ -293,27 +288,6 @@ public class SimulatedAnnealing {
         keyMatrix[row][col] = keyMatrix[swapRow][swapCol];
         keyMatrix[swapRow][swapCol] = temp;
         return keyMatrix;
-    }
-
-    /**
-     * Calculate the the probability of a sample to be recognized as english language using 4grams as reference.
-     * Used as heuristic in search algorithm.
-     * @param sample Sample of decrypted text to be assessed as english text
-     * @param ngrams Collection of 4 letter grams used the most in english language and their frequency
-     * @return Log10 probability of the sample. (Usually in around -2000 range, depends on sample size)
-     */
-
-     static double logProbability(String sample , HashMap<String, Double> ngrams){
-        double probability = 0, score = 0;
-        sample = sample.toUpperCase();
-        for (int index = 0; index <= (sample.length() - 4); index++) {
-            String gram = sample.substring(index, index + 4);
-            if(ngrams.containsKey(gram)){
-                probability += ngrams.get(gram);
-            } else probability += 1;
-            score += Math.log10(probability / ngrams.get("TOTAL"));
-        }
-        return score;
     }
 
 }

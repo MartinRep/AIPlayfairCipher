@@ -4,6 +4,8 @@ import sun.rmi.runtime.Log;
 
 import java.io.*;
 import java.net.URL;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -18,24 +20,24 @@ public class CipherBreaker {
     private static Thread[] threads;
 
     public static void main(String[] args) {
-        boolean dev = true;
-        int sampleSize = 500;
-        int transitions = 50000;
+        boolean dev = false;
+        int sampleSize = 300;
+        int transitions = 100000;
         int temp = 11;
-        int numOfWorkers = 1;
+        int numOfWorkers = 3;
         String sample = "";
         ArrayBlockingQueue<String> servLog = new ArrayBlockingQueue<>(numOfWorkers);
         char[] blockLetters = Playfair.getBlockLetters();
         String ngramFile = "./4grams.txt";
         String encryptedFile = "./resources/devHobbit.txt", encryptedURL = "", outFile = "./decrypted.txt";
         String logFile = "logfile.txt";
-        HashMap<String, Double> ngrams = new HashMap<>();
         ArrayBlockingQueue<Result> results = new ArrayBlockingQueue<>(numOfWorkers);
         Boolean loggingON = false;
         int choice = 0;
         Scanner sc = new Scanner(System.in);
         Scanner fs = new Scanner(System.in);
 
+        //An extra thread is for user interruption event listener
         threads = new Thread[numOfWorkers + 1];
         if (!dev) {
             while (choice < 2) {
@@ -57,7 +59,7 @@ public class CipherBreaker {
                         System.out.println("Logging service flipped.");
                         break;
                     case 2:
-                        System.out.println("Enter filename with path ('./hobbit.txt'): ");
+                        System.out.println("Enter filename with path ('./encrypted.txt'): ");
                         encryptedFile = fs.nextLine();
                         try {
                             sample = getFromFile(encryptedFile, sampleSize);
@@ -67,7 +69,7 @@ public class CipherBreaker {
                         }
                         break;
                     case 3:
-                        System.out.println("Enter filename with URL ('http://www.myFileStorage/hobbit.txt'): ");
+                        System.out.println("Enter filename with URL ('http://www.myFileStorage/encrypted.txt'): ");
                         encryptedURL = fs.nextLine();
                         try {
                             sample = getFromURL(encryptedURL, sampleSize);
@@ -85,7 +87,7 @@ public class CipherBreaker {
                 }
             }
             // get output file name
-            System.out.println("Enter output filename (decryptedHobbit.txt): ");
+            System.out.println("Enter output filename (decrypted.txt): ");
             outFile = fs.nextLine();
         } else {
             try {
@@ -99,37 +101,24 @@ public class CipherBreaker {
         //Starts a logging service.
         LogService.init(servLog, logFile, loggingON);
         //Retrieve the necessary data
+        Grams grams = new Grams();
         try {
-            ngrams = getNgrams(ngramFile);
-        } catch (IOException e) {
-            LogService.logMessage("Error reading ngrams file or the file format is not supported.");
+            grams.loadGrams(ngramFile);
+        } catch (Exception e) {
+            LogService.logMessage("Error reading ngrams file or the file format is not supported. " + e.getMessage());
             shutdown(2);
         }
 
-        //Dev only
-        if (dev){
-
-            LogService.logMessage(String.valueOf(SimulatedAnnealing.logProbability(sample, ngrams)));
-            LogService.logMessage(SimulatedAnnealing.decryptText(sample,"THEQUICKBROWNFXMPDVLAZYGS"));
-            LogService.logMessage(String.valueOf(SimulatedAnnealing.logProbability(SimulatedAnnealing.decryptText(sample,"THEQUICKBROWNFXMPDVLAZYGS"),ngrams)));
-            Grams grams = new Grams("4grams.txt");
-            try {
-                grams.loadGrams();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            LogService.logMessage(String.valueOf(grams.scoreText(SimulatedAnnealing.decryptText(sample,"THEQUICKBROWNFXMPDVLAZYGS"))));
-        }
-
         System.out.println("======================================================\nRunning Play-fair crack, this could take a few minutes..");
+        Instant start = Instant.now();
         // Creates a pool of Workers, that can work on Playfair cypher in concurrence.
         for (int i = 0; i < numOfWorkers; i++) {
-            threads[i] = new Thread(new Worker(sample, ngrams, blockLetters, transitions, temp, results));
+            threads[i] = new Thread(new Worker(sample, grams, blockLetters, transitions, temp, results));
             threads[i].start();
         }
         // Creates stop listener for user interruption event.
         threads[numOfWorkers] = new Thread(() -> {
-            System.out.println("Press RETURN key to Stop the process at anytime.");
+            System.out.println("Press RETURN key twice to Stop the process at anytime.");
             Scanner s = new Scanner(System.in);
             s.nextLine();
             System.out.println("Interrupted by user.");
@@ -145,7 +134,14 @@ public class CipherBreaker {
                 if(result != null && bestResult.getProbability() < result.getProbability()){
                     bestResult = result;
                     LogService.logMessage("Best result so far - "+ System.lineSeparator() + bestResult.toString());
-                    System.out.println("Press RETURN key to Stop the process at anytime.");
+                    Instant stop = Instant.now();
+                    Duration diff = Duration.between(start,stop);
+                    LogService.logMessage("Process Duration: " + String.format("%d:%02d.%02d",
+                            diff.toHours(),
+                            diff.toMinutes(),
+                            diff.toMillis()/1000));
+                    System.out.println("======================================================\nPress RETURN key twice to Stop the farther processing.\n");
+
                 }
         }
         // output decrypted text to a file.
@@ -170,33 +166,6 @@ public class CipherBreaker {
         }
 
         shutdown(0);
-    }
-
-    /**
-     * Reads 4grams from the file
-     * @param file filename of the 4grams
-     * @return  hashmap of 4gram and log10 probability
-     * @throws IOException Throws File not found.
-     */
-
-    private static HashMap<String, Double> getNgrams(String file) throws IOException {
-        HashMap<String, Double> ngrams = new HashMap<>();
-        File ngramsFile = new File(file);
-            String line;
-            double totalNgrams = 0;
-            FileReader fr = new FileReader(ngramsFile);
-            BufferedReader bf = new BufferedReader(fr);
-            while ((line = bf.readLine()) != null)
-            {
-                String [] values = line.split(" ");
-                ngrams.put(values[0], Double.valueOf(values[1]));
-                totalNgrams += Double.valueOf(values[1]);
-            }
-            ngrams.put("TOTAL",totalNgrams);
-//            for (String ngram: ngrams.keySet()) {
-//                ngrams.replace(ngram, Math.log10(ngrams.get(ngram) / totalNgrams));
-//            }
-        return ngrams;
     }
 
     /**
